@@ -1,16 +1,16 @@
-#!/usr/bin/env node
+'use strict';
 
-/* eslint-disable no-console */
+const truncate = async (knex) => {
+  const tables = await knex('pg_tables')
+    .select('tablename')
+    .where('schemaname', 'public');
 
-const truncate = require('../db/truncate');
-const {knex} = require('../db/connection');
+  const tableNames = tables
+    .map((t) => t.tablename)
+    .filter((t) => !['knex_migrations', 'knex_migrations_lock'].includes(t))
+    .join(',');
 
-(async () => {
-  try {
-    await truncate(knex);
-    process.exit();
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
-})();
+  await knex.raw(`truncate table ${tableNames} restart identity`);
+};
+
+module.exports = truncate;
